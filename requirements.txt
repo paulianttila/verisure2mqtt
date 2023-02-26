@@ -1,0 +1,2 @@
+vsure==1.8.1
+ratelimit==2.2.1

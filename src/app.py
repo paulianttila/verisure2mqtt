@@ -65,26 +65,26 @@ class MyApp:
 
     # Do work
     def do_update(self, trigger_source: TriggerSource) -> None:
-        self.logger.debug("Update called, trigger_source=%s", trigger_source)
+        self.logger.debug(f"Update called, trigger_source={trigger_source}")
         self.update()
 
     @limits(calls=2, period=900)
-    def update(self):
+    def update(self) -> None:
         self.logger.debug("Fetch data from verisure")
         self.login()
 
+        self.succesfull_fecth_metric.inc()
         try:
-            self.succesfull_fecth_metric.inc()
             self.update_data_to_mqtt()
         except Exception as e:
             self.fecth_errors_metric.inc()
-            self.logger.error("Error occured: %s" % e)
-            self.logger.debug("Error occured: %s" % e, exc_info=True)
+            self.logger.error(f"Error occured: {e}")
+            self.logger.debug(f"Error occured: {e}", exc_info=True)
             self.logger.info("Retry with relogin")
             self.login(relogin=True)
             self.update_data_to_mqtt()
 
-    def login(self, relogin=False):
+    def login(self, relogin=False) -> None:
         if not self.login_done or relogin:
             self.logger.debug("Login")
             self.login_metric.inc()
@@ -94,22 +94,23 @@ class MyApp:
                 self.login_errors_metric.inc()
                 raise
             self.login_done = True
-            self.logger.debug("Installations: %s", self.session.installations)
+            self.logger.debug(f"Installations: {self.session.installations}")
 
-    def update_data_to_mqtt(self):
+    def update_data_to_mqtt(self) -> None:
         overview = self.fecth_overview_from_verisure()
         for lock in overview["doorLockStatusList"]:
+            area = lock["area"]
             self.publish_value_to_mqtt_topic(
-                lock["area"] + "/currentLockState", lock["currentLockState"], True
+                f"{area}/currentLockState", lock["currentLockState"], True
             )
             self.publish_value_to_mqtt_topic(
-                lock["area"] + "/lockedState", lock["lockedState"], True
+                f"{area}/currentLockState", lock["lockedState"], True
             )
             self.publish_value_to_mqtt_topic(
-                lock["area"] + "/deviceLabel", lock["deviceLabel"], True
+                f"{area}/currentLockState", lock["deviceLabel"], True
             )
             self.publish_value_to_mqtt_topic(
-                lock["area"] + "/eventTime", lock["eventTime"], True
+                f"{area}/currentLockState", lock["eventTime"], True
             )
         self.publish_value_to_mqtt_topic(
             "lastUpdateTime",
@@ -117,10 +118,10 @@ class MyApp:
             True,
         )
 
-    def fecth_overview_from_verisure(self):
+    def fecth_overview_from_verisure(self) -> None:
         self.logger.debug("Fetch information from verisure")
         overview = self.session.get_overview()
-        self.logger.debug("Received data: %s", overview)
+        self.logger.debug(f"Received data: {overview}")
         return overview
 
 

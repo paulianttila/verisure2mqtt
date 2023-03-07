@@ -118,7 +118,7 @@ class MyApp:
             True,
         )
 
-    def fecth_overview_from_verisure(self) -> None:
+    def fecth_overview_from_verisure(self):
         self.logger.debug("Fetch information from verisure")
         overview = self.session.get_overview()
         self.logger.debug(f"Received data: {overview}")

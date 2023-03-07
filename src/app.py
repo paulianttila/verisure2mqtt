@@ -9,21 +9,21 @@ from datetime import datetime
 import verisure
 from ratelimit import limits
 
-class MyConfig(Config):
 
+class MyConfig(Config):
     def __init__(self):
         super().__init__(self.APP_NAME)
 
-    APP_NAME = 'verisure2mqtt'
+    APP_NAME = "verisure2mqtt"
 
     # App specific variables
 
     VERISURE_USERNAME = None
     VERISURE_PASSWORD = None
-    VERISURE_TOKEN_FILE = '~/.verisure-cookie'
+    VERISURE_TOKEN_FILE = "~/.verisure-cookie"
+
 
 class MyApp:
-
     def init(self, callbacks: Callbacks) -> None:
         self.logger = callbacks.get_logger()
         self.config = callbacks.get_config()
@@ -31,21 +31,28 @@ class MyApp:
         self.add_url_rule = callbacks.add_url_rule
         self.publish_value_to_mqtt_topic = callbacks.publish_value_to_mqtt_topic
         self.subscribe_to_mqtt_topic = callbacks.subscribe_to_mqtt_topic
-        self.succesfull_fecth_metric = Counter('succesfull_fecth', '', registry=self.metrics_registry)
-        self.fecth_errors_metric = Counter('fecth_errors', '', registry=self.metrics_registry)
-        self.login_metric = Counter('login_count', '', registry=self.metrics_registry)
-        self.login_errors_metric = Counter('login_errors_count', '', registry=self.metrics_registry)
+        self.succesfull_fecth_metric = Counter(
+            "succesfull_fecth", "", registry=self.metrics_registry
+        )
+        self.fecth_errors_metric = Counter(
+            "fecth_errors", "", registry=self.metrics_registry
+        )
+        self.login_metric = Counter("login_count", "", registry=self.metrics_registry)
+        self.login_errors_metric = Counter(
+            "login_errors_count", "", registry=self.metrics_registry
+        )
         self.session = verisure.Session(
-                self.config['VERISURE_USERNAME'],
-                self.config['VERISURE_PASSWORD'],
-                self.config['VERISURE_TOKEN_FILE'])
+            self.config["VERISURE_USERNAME"],
+            self.config["VERISURE_PASSWORD"],
+            self.config["VERISURE_TOKEN_FILE"],
+        )
         self.login_done = False
 
     def get_version(self) -> str:
-        return '1.0.0'
+        return "1.0.0"
 
     def stop(self) -> None:
-        self.logger.debug('Exit')
+        self.logger.debug("Exit")
 
     def subscribe_to_mqtt_topics(self) -> None:
         pass
@@ -58,12 +65,12 @@ class MyApp:
 
     # Do work
     def do_update(self, trigger_source: TriggerSource) -> None:
-        self.logger.debug('Update called, trigger_source=%s', trigger_source)
+        self.logger.debug("Update called, trigger_source=%s", trigger_source)
         self.update()
 
     @limits(calls=2, period=900)
     def update(self):
-        self.logger.debug('Fetch data from verisure')
+        self.logger.debug("Fetch data from verisure")
         self.login()
 
         try:
@@ -71,15 +78,15 @@ class MyApp:
             self.update_data_to_mqtt()
         except Exception as e:
             self.fecth_errors_metric.inc()
-            self.logger.error('Error occured: %s' % e)
-            self.logger.debug('Error occured: %s' % e, exc_info=True)
-            self.logger.info('Retry with relogin')
+            self.logger.error("Error occured: %s" % e)
+            self.logger.debug("Error occured: %s" % e, exc_info=True)
+            self.logger.info("Retry with relogin")
             self.login(relogin=True)
             self.update_data_to_mqtt()
 
     def login(self, relogin=False):
         if not self.login_done or relogin:
-            self.logger.debug('Login') 
+            self.logger.debug("Login")
             self.login_metric.inc()
             try:
                 self.session.login()
@@ -87,38 +94,35 @@ class MyApp:
                 self.login_errors_metric.inc()
                 raise
             self.login_done = True
-            self.logger.debug('Installations: %s', self.session.installations)
-    
+            self.logger.debug("Installations: %s", self.session.installations)
+
     def update_data_to_mqtt(self):
         overview = self.fecth_overview_from_verisure()
-        for lock in overview['doorLockStatusList']:
+        for lock in overview["doorLockStatusList"]:
             self.publish_value_to_mqtt_topic(
-                lock['area'] + '/currentLockState',
-                lock['currentLockState'],
-                True)
+                lock["area"] + "/currentLockState", lock["currentLockState"], True
+            )
             self.publish_value_to_mqtt_topic(
-                lock['area'] + '/lockedState',
-                lock['lockedState'],
-                True)
+                lock["area"] + "/lockedState", lock["lockedState"], True
+            )
             self.publish_value_to_mqtt_topic(
-                lock['area'] + '/deviceLabel',
-                lock['deviceLabel'],
-                True)
+                lock["area"] + "/deviceLabel", lock["deviceLabel"], True
+            )
             self.publish_value_to_mqtt_topic(
-                lock['area'] + '/eventTime',
-                lock['eventTime'],
-                True)
+                lock["area"] + "/eventTime", lock["eventTime"], True
+            )
         self.publish_value_to_mqtt_topic(
-            'lastUpdateTime',
+            "lastUpdateTime",
             str(datetime.now().replace(microsecond=0).isoformat()),
-            True)
+            True,
+        )
 
     def fecth_overview_from_verisure(self):
-        self.logger.debug('Fetch information from verisure')
+        self.logger.debug("Fetch information from verisure")
         overview = self.session.get_overview()
-        self.logger.debug('Received data: %s', overview)
+        self.logger.debug("Received data: %s", overview)
         return overview
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     Framework().start(MyApp(), MyConfig(), blocked=True)

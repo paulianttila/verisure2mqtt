@@ -10,9 +10,12 @@ git+https://github.com/stlehmann/Flask-MQTT.git@master
 prometheus-flask-exporter
 Flask-Limiter
 
-git+https://github.com/paulianttila/MQTT-Framework.git@v1.0.2
+git+https://github.com/paulianttila/MQTT-Framework.git@v1.1.1
 
 -r requirements.txt
 pip-tools
 pytest
-tavern
+ruff
+black
+coverage
+bandit[toml]

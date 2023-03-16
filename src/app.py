@@ -28,7 +28,7 @@ class MyConfig(Config):
 
     VERISURE_USERNAME = None
     VERISURE_PASSWORD = None
-    VERISURE_TOKEN_FILE = "/data/.verisure-cookie" #nosec
+    VERISURE_TOKEN_FILE = "/data/.verisure-cookie"  # nosec
     VERISURE_INSTALLATION = None
 
 

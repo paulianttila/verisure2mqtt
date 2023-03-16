@@ -1,4 +1,4 @@
-FROM paulianttila/mqtt-framework:1.0.2
+FROM paulianttila/mqtt-framework:1.1.1
 
 ARG DIR=/app
 ARG APP=app.py
@@ -17,6 +17,9 @@ WORKDIR ${DIR}
 COPY src ${DIR}
 
 RUN addgroup -S ${GROUP} && adduser -S ${USER} -G ${GROUP}
+
+VOLUME /data
+WORKDIR /data
 
 USER ${USER}
 CMD python ${DIR}/${APP}

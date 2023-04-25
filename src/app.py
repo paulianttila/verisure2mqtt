@@ -63,7 +63,7 @@ class MyApp:
         self.giid = None
 
     def get_version(self) -> str:
-        return "2.0.0"
+        return "2.0.1"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -109,8 +109,8 @@ class MyApp:
                 self.installations = self.verisure.login_cookie()
                 self.handle_succesfull_login()
                 return
-            except VerisureLoginError:
-                self.logger.error("Login with token failed")
+            except VerisureLoginError as e:
+                self.handle_failed_login(e, "Login with token failed")
 
         self.logger.debug("Login")
         self.login_metric.inc()
@@ -126,13 +126,13 @@ class MyApp:
                     self.installations = self.verisure.login_cookie()
                     self.handle_succesfull_login()
                 except VerisureLoginError as e:
-                    self.handle_mfa_required_error()
+                    self.handle_mfa_required_error(e)
                     raise
             else:
-                self.handle_failed_login()
+                self.handle_failed_login(e)
                 raise
-        except Exception:
-            self.handle_failed_login()
+        except Exception as e:
+            self.handle_failed_login(e)
             raise
 
     def handle_succesfull_login(self):
@@ -142,15 +142,19 @@ class MyApp:
         if self.giid is None:
             self.handle_installation()
 
-    def handle_failed_login(self):
+    def handle_failed_login(self, e: Exception = None, msg: str = None):
         self.login_errors_metric.inc()
         self.login_done = False
+        if msg is None:
+            self.logger.error(f"Login failed: {e}")
+        else:
+            self.logger.error(f"{msg}: {e}")
         self.update_status("Login failed")
 
-    def handle_mfa_required_error(self):
+    def handle_mfa_required_error(self, e: Exception = None):
         self.mfa_needed = True
         self.login_done = False
-        self.logger.error("Multifactor authentication login needed")
+        self.logger.error(f"Multifactor authentication login needed: {e}")
         self.update_status("Multifactor authentication login needed")
 
     def handle_installation(self):

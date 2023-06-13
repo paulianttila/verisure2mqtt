@@ -63,7 +63,7 @@ class MyApp:
         self.giid = None
 
     def get_version(self) -> str:
-        return "2.0.1"
+        return "2.0.2"
 
     def stop(self) -> None:
         self.logger.debug("Exit")

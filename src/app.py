@@ -63,7 +63,7 @@ class MyApp:
         self.giid = None
 
     def get_version(self) -> str:
-        return "2.0.1"
+        return "2.0.2"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -126,7 +126,10 @@ class MyApp:
                     self.installations = self.verisure.login_cookie()
                     self.handle_succesfull_login()
                 except VerisureLoginError as e:
-                    self.handle_mfa_required_error(e)
+                    if "Multifactor authentication enabled" in str(e):
+                        self.handle_mfa_required_error(e)
+                    else:
+                        self.handle_failed_login(e)
                     raise
             else:
                 self.handle_failed_login(e)

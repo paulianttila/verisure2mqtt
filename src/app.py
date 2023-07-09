@@ -69,7 +69,7 @@ class MyApp:
                 self.config["VERISURE_RATE_LIMIT_PERIOD"],
             )
         )
- 
+
     def get_version(self) -> str:
         return "2.1.0"
 

@@ -114,11 +114,11 @@ class MyApp:
 
         if self.login_done:
             try:
-                self.installations = self.verisure.login_cookie()
-                self.handle_succesfull_login()
+                self.logger.debug("Update token")
+                self.verisure.update_cookie()
                 return
             except VerisureLoginError as e:
-                self.handle_failed_login(e, "Login with token failed")
+                self.handle_failed_login(e, "Token update failed")
 
         self.logger.debug("Login")
         self.login_metric.inc()

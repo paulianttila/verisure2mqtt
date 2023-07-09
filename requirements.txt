@@ -1,2 +1,2 @@
-vsure==2.6.1
+vsure==2.6.2
 ratelimit==2.2.1

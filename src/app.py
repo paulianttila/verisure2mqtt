@@ -72,7 +72,7 @@ class MyApp:
         )
 
     def get_version(self) -> str:
-        return "2.1.1"
+        return "2.2.0"
 
     def stop(self) -> None:
         self.logger.debug("Exit")

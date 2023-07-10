@@ -11,7 +11,7 @@ from verisure import (
     LoginError as VerisureLoginError,
     ResponseError as VerisureResponseError,
 )
-from ratelimit import limits
+from pyrate_limiter import RequestRate, Limiter
 
 
 class MfaRequired(Exception):
@@ -30,6 +30,8 @@ class MyConfig(Config):
     VERISURE_PASSWORD = None
     VERISURE_TOKEN_FILE = "/data/.verisure-cookie"  # nosec
     VERISURE_INSTALLATION = None
+    VERISURE_RATE_LIMIT = 1
+    VERISURE_RATE_LIMIT_PERIOD = 300
 
 
 class MyApp:
@@ -61,9 +63,15 @@ class MyApp:
         self.mfa_validate_ongoing = False
         self.installations = None
         self.giid = None
+        self.limiter = Limiter(
+            RequestRate(
+                self.config["VERISURE_RATE_LIMIT"],
+                self.config["VERISURE_RATE_LIMIT_PERIOD"],
+            )
+        )
 
     def get_version(self) -> str:
-        return "2.0.2"
+        return "2.1.0"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -86,10 +94,10 @@ class MyApp:
         self.logger.debug(f"Update called, trigger_source={trigger_source}")
         self.update()
 
-    @limits(1, period=300)
     def update(self):
-        self.logger.debug("Fetch data from verisure")
         try:
+            self.logger.debug("Fetch data from verisure")
+            self.limiter.try_acquire("Verisure update")
             self.login()
             overview = self.fecth_data_from_verisure()
             self.logger.debug(f"Received overview: {overview}")
@@ -106,11 +114,11 @@ class MyApp:
 
         if self.login_done:
             try:
-                self.installations = self.verisure.login_cookie()
-                self.handle_succesfull_login()
+                self.logger.debug("Update token")
+                self.verisure.update_cookie()
                 return
             except VerisureLoginError as e:
-                self.handle_failed_login(e, "Login with token failed")
+                self.handle_failed_login(e, "Token update failed")
 
         self.logger.debug("Login")
         self.login_metric.inc()

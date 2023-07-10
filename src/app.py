@@ -337,7 +337,6 @@ class MyApp:
             self.verisure.door_window(),
             self.verisure.smart_lock(),
             self.verisure.smartplugs(),
-            self.verisure.door_lock_configuration(),
         )
         self.logger.debug(f"Received data: {overview}")
         return {

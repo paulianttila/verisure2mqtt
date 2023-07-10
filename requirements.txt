@@ -1,2 +1,2 @@
 vsure==2.6.2
-ratelimit==2.2.1
+pyrate-limiter==2.10.0

@@ -1,3 +1,4 @@
+import json
 from mqtt_framework import Framework
 from mqtt_framework import Config
 from mqtt_framework.callbacks import Callbacks
@@ -79,12 +80,32 @@ class MyApp:
     def subscribe_to_mqtt_topics(self) -> None:
         self.subscribe_to_mqtt_topic("requestMFA")
         self.subscribe_to_mqtt_topic("validateMFA")
+        self.subscribe_to_mqtt_topic("sendCommand")
 
     def mqtt_message_received(self, topic: str, message: str) -> None:
-        if topic == "requestMFA" and message.lower() == "true":
-            self.request_mfa()
-        if topic == "validateMFA" and message != "":
-            self.validate_mfa(message)
+        # sourcery skip: raise-specific-error
+        self.logger.debug(f"MQTT message received: topic='{topic}' message='{message}'")
+
+        try:
+            if topic == "requestMFA" and message.lower() == "true":
+                self.request_mfa()
+            elif topic == "validateMFA" and message != "":
+                self.validate_mfa(message)
+            elif topic == "sendCommand" and message != "":
+                self.handle_command(message)
+            else:
+                raise Exception(f"Unknown command '{topic}'")
+        except Exception as e:
+            err = (
+                f"Error occured while processing message "
+                f"'{message}' from topic '{topic}'",
+            )
+            self.handle_exception(err, e)
+
+    def handle_exception(self, msg: str, e: Exception) -> None:
+        self.logger.error(f"{msg}: {e}")
+        self.logger.debug(f"Exception: {e}", exc_info=True)
+        self.publish_value_to_mqtt_topic("lastError", msg)
 
     def do_healthy_check(self) -> bool:
         return True
@@ -234,6 +255,21 @@ class MyApp:
         else:
             self.logger.info("Validate MFA already ongoing")
 
+    def handle_command(self, message: str) -> None:
+        data = json.loads(message)
+        sn = data["deviceLabel"]
+        command = data["command"]
+
+        match command:
+            case "enableAutolock":
+                self.verisure.set_autolock_enabled(
+                    device_label=sn, auto_lock_enabled=True, giid=self.giid
+                )
+            case "disableAutolock":
+                self.verisure.set_autolock_enabled(
+                    device_label=sn, auto_lock_enabled=False, giid=self.giid
+                )
+
     def update_data_to_mqtt(self, overview: dict) -> None:
         self.publish_broadband(overview)
         self.publish_locks(overview)
@@ -301,6 +337,7 @@ class MyApp:
             self.verisure.door_window(),
             self.verisure.smart_lock(),
             self.verisure.smartplugs(),
+            self.verisure.door_lock_configuration(),
         )
         self.logger.debug(f"Received data: {overview}")
         return {

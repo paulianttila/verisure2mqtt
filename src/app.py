@@ -72,7 +72,7 @@ class MyApp:
         )
 
     def get_version(self) -> str:
-        return "2.2.0"
+        return "2.2.1"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -337,7 +337,6 @@ class MyApp:
             self.verisure.door_window(),
             self.verisure.smart_lock(),
             self.verisure.smartplugs(),
-            self.verisure.door_lock_configuration(),
         )
         self.logger.debug(f"Received data: {overview}")
         return {

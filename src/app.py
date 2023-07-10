@@ -72,7 +72,7 @@ class MyApp:
         )
 
     def get_version(self) -> str:
-        return "2.2.1"
+        return "2.2.2"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -259,16 +259,24 @@ class MyApp:
         data = json.loads(message)
         sn = data["deviceLabel"]
         command = data["command"]
+        req = None
 
         match command:
             case "enableAutolock":
-                self.verisure.set_autolock_enabled(
+                req = self.verisure.set_autolock_enabled(
                     device_label=sn, auto_lock_enabled=True, giid=self.giid
                 )
             case "disableAutolock":
-                self.verisure.set_autolock_enabled(
+                req = self.verisure.set_autolock_enabled(
                     device_label=sn, auto_lock_enabled=False, giid=self.giid
                 )
+
+        if req is not None:
+            self.logger.debug(f"Sending request: {req}")
+            res = self.verisure.request(req)
+            self.logger.debug(f"Received response to request: {res}")
+        else:
+            self.logger.error(f"No request to send for '{message}'")
 
     def update_data_to_mqtt(self, overview: dict) -> None:
         self.publish_broadband(overview)

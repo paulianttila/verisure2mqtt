@@ -72,7 +72,7 @@ class MyApp:
         )
 
     def get_version(self) -> str:
-        return "2.2.2"
+        return "2.2.3"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -269,6 +269,10 @@ class MyApp:
             case "disableAutolock":
                 req = self.verisure.set_autolock_enabled(
                     device_label=sn, auto_lock_enabled=False, giid=self.giid
+                )
+            case "updateAutolockState":
+                req = self.verisure.door_lock_configuration(
+                    device_label=sn, giid=self.giid
                 )
 
         if req is not None:

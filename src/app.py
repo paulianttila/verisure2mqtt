@@ -72,7 +72,7 @@ class MyApp:
         )
 
     def get_version(self) -> str:
-        return "2.2.4"
+        return "2.2.5"
 
     def stop(self) -> None:
         self.logger.debug("Exit")
@@ -115,12 +115,12 @@ class MyApp:
         self.logger.debug(f"Update called, trigger_source={trigger_source}")
         self.update()
 
-    def update(self):
+    def update(self) -> None:
         try:
             self.logger.debug("Fetch data from verisure")
             self.limiter.try_acquire("Verisure update")
             self.login()
-            overview = self.fecth_data_from_verisure()
+            overview = self.fecth_and_process_data_from_verisure()
             self.logger.debug(f"Received overview: {overview}")
             self.update_data_to_mqtt(overview)
             self.succesfull_fecth_metric.inc()
@@ -353,17 +353,14 @@ class MyApp:
                 f"locks/{area}/lockMethod", lock["lockMethod"], True
             )
 
-    def fecth_data_from_verisure(self) -> dict:
-        def unpack(overview: list, value: str) -> dict | list:
-            unpacked = [
-                item["data"]["installation"][value]
-                for item in overview
-                if value in item.get("data", {}).get("installation", {})
-            ]
-            return unpacked[0]
+    def fecth_and_process_data_from_verisure(self) -> dict:
+        overview = self.fecth_data_from_verisure()
+        self.logger.debug(f"Received overview: {overview}")
+        return self.process_data(overview)
 
+    def fecth_data_from_verisure(self) -> list:
         self.logger.debug("Fetch information from verisure")
-        overview = self.verisure.request(
+        return self.verisure.request(
             self.verisure.arm_state(),
             self.verisure.broadband(),
             self.verisure.cameras(),
@@ -372,7 +369,18 @@ class MyApp:
             self.verisure.smart_lock(),
             self.verisure.smartplugs(),
         )
-        self.logger.debug(f"Received data: {overview}")
+
+    def process_data(self, overview: list) -> dict:
+        def unpack(overview: list, value: str):
+            unpacked = [
+                item["data"]["installation"].get(value)
+                for item in overview
+                if value in item.get("data", {}).get("installation", {})
+            ]
+            if not unpacked or unpacked[0] is None:
+                return []
+            return unpacked[0]
+
         return {
             "alarm": unpack(overview, "armState"),
             "broadband": unpack(overview, "broadband"),
